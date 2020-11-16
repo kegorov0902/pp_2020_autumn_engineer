@@ -56,31 +56,6 @@ TEST(matrix_sum_test, general_parallel_test_large) {  // same test on 10000000 e
     }
 }
 
-/* TEST(matrix_sum_test, time_camparing_test) {  // test passed if parallel time < sequential time
-    int rank;
-    std::vector<int> vec = getRandomVector(10000);
-    double starttime, endtime, dif_parallel_time;
-
-    starttime = MPI_Wtime();
-    getParallelSum(vec, 10000);
-    endtime = MPI_Wtime();
-    dif_parallel_time = endtime - starttime;
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (rank == 0) {
-        clock_t start, end;
-        double dif_sequential_time;
-
-        start = clock();
-        getSequentialSum(vec);
-        end = clock();
-
-        dif_sequential_time = static_cast<double>(end - start);
-
-        ASSERT_TRUE(dif_sequential_time <= dif_parallel_time);
-    }
-} */
-
 TEST(matrix_sum_test, time_camparing_test_large) {  // test passed if parallel time < sequential time
     int rank;
     std::vector<int> vec = getRandomVector(10000000);

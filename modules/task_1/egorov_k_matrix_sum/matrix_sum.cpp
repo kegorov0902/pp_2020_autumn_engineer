@@ -37,19 +37,16 @@ int getParallelSum(std::vector<int> mat,
     const int rmPart = mat_size % size;
 
     int global_sum = 0;
-    // std::cout << "Calculating partial sums in rank " << rank << std::endl;
+
     if (rank == 0) {
         local_sum = std::accumulate(mat.begin(), (mat.begin() + delta + rmPart), 0);
     } else {
         local_sum = std::accumulate(mat.begin() + rank * delta + rmPart,
            (mat.begin() + (rank + 1) * delta + rmPart), 0);
     }
-    // std::cout << "In rank " << rank << " local sum is " << local_sum << std::endl;
-
-    // std::cout << "Executing MPI_Reduce: " << std::endl;
+    
     MPI_Reduce(&local_sum, &global_sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-    // std::cout << "Rank " << rank << " result: " << global_sum << std::endl;
     return global_sum;
 }
 
