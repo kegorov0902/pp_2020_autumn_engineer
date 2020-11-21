@@ -1,69 +1,44 @@
-// Copyright 2018 Nesterov Alexander
+// Copyright 2020 Egorov Kirill
 #include <mpi.h>
 #include <vector>
 #include <string>
 #include <random>
 #include <ctime>
 #include <algorithm>
-#include "../../../modules/test_tasks/test_mpi/ops_mpi.h"
+#include "../../../modules/task_2/egorov_k_circle_comm/circle_comm.h"
 
+int circle_comm_create() {
+    int numtasks;
 
-std::vector<int> getRandomVector(int sz) {
-    std::mt19937 gen;
-    gen.seed(static_cast<unsigned int>(time(0)));
-    std::vector<int> vec(sz);
-    for (int  i = 0; i < sz; i++) { vec[i] = gen() % 100; }
-    return vec;
-}
+    MPI_Comm circle_comm;
 
-int getSequentialOperations(std::vector<int> vec, std::string ops) {
-    const int  sz = vec.size();
-    int reduction_elem = 0;
-    if (ops == "+") {
-        for (int  i = 0; i < sz; i++) {
-            reduction_elem += vec[i];
-        }
-    } else if (ops == "-") {
-        for (int  i = 0; i < sz; i++) {
-            reduction_elem -= vec[i];
-        }
-    } else if (ops == "max") {
-        reduction_elem = vec[0];
-        for (int  i = 1; i < sz; i++) {
-            reduction_elem = std::max(reduction_elem, vec[i]);
-        }
+    MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+    int *ind = new int[numtasks];
+    int *edg = new int[2 * numtasks];
+
+    for (int i = 0; i < numtasks; i++) {
+         ind[i] = (i + 1) * 2;
     }
-    return reduction_elem;
-}
 
-int getParallelOperations(std::vector<int> global_vec,
-                          int count_size_vector, std::string ops) {
-    int size, rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    const int delta = count_size_vector / size;
+    for (int num = 0; num < numtasks; num++) {
+        int a = num - 1;
+        int b = num + 1;
 
-    if (rank == 0) {
-        for (int proc = 1; proc < size; proc++) {
-            MPI_Send(&global_vec[0] + proc * delta, delta,
-                        MPI_INT, proc, 0, MPI_COMM_WORLD);
+        if (a >= 0 && b < numtasks) {
+            edg[num * 2] = a;
+            edg[num * 2 + 1] = b;
+        } else {
+            if (a < 0) {
+                edg[num] = numtasks - 1;
+                edg[num + 1] = b;
+            }
+            if (b >= numtasks) {
+                edg[num * 2] = a;
+                edg[num * 2 + 1] = 0;
+            }
         }
     }
 
-    std::vector<int> local_vec(delta);
-    if (rank == 0) {
-        local_vec = std::vector<int>(global_vec.begin(),
-                                     global_vec.begin() + delta);
-    } else {
-        MPI_Status status;
-        MPI_Recv(&local_vec[0], delta, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-    }
-
-    int global_sum = 0;
-    int local_sum = getSequentialOperations(local_vec, ops);
-    MPI_Op op_code;
-    if (ops == "+" || ops == "-") { op_code = MPI_SUM; }
-    if (ops == "max") { op_code = MPI_MAX; }
-    MPI_Reduce(&local_sum, &global_sum, 1, MPI_INT, op_code, 0, MPI_COMM_WORLD);
-    return global_sum;
+    MPI_Graph_create(MPI_COMM_WORLD, numtasks, ind, edg, 1, &circle_comm);
+    return circle_comm;
 }
